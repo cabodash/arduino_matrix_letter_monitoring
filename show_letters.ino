@@ -10,7 +10,6 @@ struct Character {
   byte data[8];
 };
 Character characters[] = {
-  { " ", { B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000 } },
   { "A", { B00111110, B01111110, B11001000, B11001000, B01111110, B00111110, B00000000, B00000000 } },
   { "B", { B10000010, B11111110, B11111110, B10010010, B10010010, B11111110, B01101100, B00000000 } },
   { "C", { B00111000, B01111100, B11000110, B10000010, B10000010, B11000110, B01000100, B00000000 } },
@@ -65,45 +64,131 @@ Character characters[] = {
   { "z", { B00110010, B00100110, B00101110, B00111010, B00110010, B00100110, B00000000, B00000000 } }
 };
 
-byte space[8] = { B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000 };
-byte matriz[32] = { B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+byte matrix[32] = { B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
                     B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
                     B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
                     B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000 };
 
-void setup() {
-  Serial.begin(9600);
-  lc0.shutdown(0, false);
-  lc0.setIntensity(0, 8);
-  lc0.clearDisplay(0);
+
+
+//Calcula el ancho de una letra
+int widthLetter(byte letter[8]) {
+  int width = 0;
+  for (int i = 0; i < 8; i++) {
+    if (letter[i] != B00000000) {
+      width++;
+    }
+  }
+  return width;
 }
 
-// Añade la letra recibida a la variable de la matriz
+//transforma una letra quitando los espacios
+// byte removeEmptyColumns(byte letter[8]) {
+//   int width = widthLetter(letter);
+//   byte newLetter[width];
+//   int index = 0;
+//   for (int i = 0; i < 8; i++) {
+//     if (letter[i] != B00000000) {
+//       newLetter[index] = letter[i];
+//       index++;
+//     }
+//   }
+//   return newLetter;
+// }
+
+//Hace espacio para la letra recibida (La letra recibida debe ser sin formatear)
+void spaceToNewLetter(byte letter[8]) {
+  int width = widthLetter(letter) +1;
+  for (int i = width; i < sizeof(matrix); i++) {
+    matrix[i-width] = matrix[i];
+  }
+  matrix[31 - widthLetter(letter)] = B00000000;
+}
+
+//añade la letra a la lista de la matriz
+void addLetterToMatrix(byte letter[8]){
+  int width = widthLetter(letter);
+  Serial.print("width: ");
+  Serial.print(width);
+  Serial.println();
+
+
+  int indexMatrix = sizeof(matrix)-1;
+  for(int i = 7; i >=0; i--){
+    Serial.print(letter[i], BIN);
+    Serial.print(" ");
+    if(letter[i] != B00000000){
+      matrix[indexMatrix] = letter[i];
+      indexMatrix --;
+    }
+  }
+  Serial.println();
+}
+
+//Añade el espacio a la lista de la matriz
+void addSpace(){
+  for (int i = 3; i < sizeof(matrix); i++) {
+    matrix[i-3] = matrix[i];
+  }
+  matrix[31] = B00000000;
+  matrix[30] = B00000000;
+  matrix[29] = B00000000;
+}
+
+// Añade la letra recibida a la variable de la matrix
 void addLetter(char receivedChar) {
   for (int i = sizeof(characters) / sizeof(Character) - 1; i >= 0; i--) {
     if (characters[i].letter == String(receivedChar)) {
-      // Añade las últimas 8 columnas de la letra a la variable matriz
-      for (int j = 0; j < 8; j++) {
-        matriz[j + 24] = characters[i].data[j];
-      }
+      spaceToNewLetter(characters[i].data);
+      addLetterToMatrix(characters[i].data);
       break;
     }
   }
 }
+
 // Actualiza las cuatro matrices en serie
 void updateMatrix() {
   int nMatrix = 0;
-  for (int l = 0; l < 8; l++) {
-    lc3.setColumn(3, l, matriz[0 + l]);
-    lc3.setColumn(2, l, matriz[8 + l]);
-    lc3.setColumn(1, l, matriz[16 + l]);
-    lc3.setColumn(0, l, matriz[24 + l]);
-  }
-  for (int i = 0; i < 32; i++) {
-    Serial.print(matriz[i], BIN);
-    Serial.print(" ");
-  }
-  Serial.println();
+  lc3.setColumn(0, 7, matrix[31]);
+  lc3.setColumn(0, 6, matrix[30]);
+  lc3.setColumn(0, 5, matrix[29]);
+  lc3.setColumn(0, 4, matrix[28]);
+  lc3.setColumn(0, 3, matrix[27]);
+  lc3.setColumn(0, 2, matrix[26]);
+  lc3.setColumn(0, 1, matrix[25]);
+  lc3.setColumn(0, 0, matrix[24]);
+
+  lc3.setColumn(1, 7, matrix[23]);
+  lc3.setColumn(1, 6, matrix[22]);
+  lc3.setColumn(1, 5, matrix[21]);
+  lc3.setColumn(1, 4, matrix[20]);
+  lc3.setColumn(1, 3, matrix[19]);
+  lc3.setColumn(1, 2, matrix[18]);
+  lc3.setColumn(1, 1, matrix[17]);
+  lc3.setColumn(1, 0, matrix[16]);
+
+  lc3.setColumn(2, 7, matrix[15]);
+  lc3.setColumn(2, 6, matrix[14]);
+  lc3.setColumn(2, 5, matrix[13]);
+  lc3.setColumn(2, 4, matrix[12]);
+  lc3.setColumn(2, 3, matrix[11]);
+  lc3.setColumn(2, 2, matrix[10]);
+  lc3.setColumn(2, 1, matrix[9]);
+  lc3.setColumn(2, 0, matrix[8]);
+
+  lc3.setColumn(3, 7, matrix[7]);
+  lc3.setColumn(3, 6, matrix[6]);
+  lc3.setColumn(3, 5, matrix[5]);
+  lc3.setColumn(3, 4, matrix[4]);
+  lc3.setColumn(3, 3, matrix[3]);
+  lc3.setColumn(3, 2, matrix[2]);
+  lc3.setColumn(3, 1, matrix[1]);
+  lc3.setColumn(3, 0, matrix[0]);
+  // for (int i = 0; i < 32; i++) {
+  //   Serial.print(matrix[i], BIN);
+  //   Serial.print(" ");
+  // }
+  // Serial.println();
 }
 
 // Mueve las columnas a la izquierda
@@ -113,16 +198,16 @@ void scroll() {
   // Verifica si ha pasado medio segundo desde la última actualización
   if (millis() - lastUpdateTime >= 200) {
     // Verifica si la columna 0 no es igual a B00000000
-    if (matriz[0] == B00000000) {
+    if (matrix[0] == B00000000) {
       // Mueve todas las columnas una posición hacia la izquierda
       for (int i = 0; i < 31; i++) {
-        matriz[i] = matriz[i + 1];
+        matrix[i] = matrix[i + 1];
       }
       // Establece la última columna en B00000000
-      matriz[31] = B00000000;
+      matrix[31] = B00000000;
       updateMatrix();
     }
-    // Actualiza la última vez que se actualizó la matriz
+    // Actualiza la última vez que se actualizó la matrix
     lastUpdateTime = millis();
   }
 }
@@ -132,10 +217,10 @@ void moveToLeft(char receivedChar) {
   int letterWidth = 0;
   for (int i = sizeof(characters) / sizeof(Character) - 1; i > 0; i--) {
     if (String(receivedChar) == characters[0].letter) {
-      // Mueve el array de matriz una posición a la izquierda y añade en la última posición (31) un B00000000
+      // Mueve el array de matrix una posición a la izquierda y añade en la última posición (31) un B00000000
       letterWidth++;
     } else if (characters[i].letter == String(receivedChar)) {
-      // Añade las últimas 8 columnas de la letra a la variable matriz
+      // Añade las últimas 8 columnas de la letra a la variable matrix
       for (int j = 0; j < 8; j++) {
         if (characters[i].data[j] != B00000000) {
           letterWidth++;
@@ -150,15 +235,27 @@ void moveToLeft(char receivedChar) {
   Serial.println(letterWidth);
   // Hace espacio para la nueva letra
   for (int i = 0; i < (31 - letterWidth); i++) {
-    matriz[i] = matriz[i + letterWidth];
+    matrix[i] = matrix[i + letterWidth];
   }
-  matriz[31] = B00000000;
+  matrix[31] = B00000000;
   // Deja una columna de B00000000 entre letra y letra
   //   for (int i = letterWidth - 1; i >= 0; i--) {
-  //     matriz[i] = B00000000;
+  //     matrix[i] = B00000000;
   //   }
   // Pinta la nueva letra
   addLetter(receivedChar);
+}
+
+
+
+
+
+
+void setup() {
+  Serial.begin(2000000);
+  lc0.shutdown(0, false);
+  lc0.setIntensity(0, 8);
+  lc0.clearDisplay(0);
 }
 
 void loop() {
@@ -168,7 +265,15 @@ void loop() {
       Serial.print("comm: ");
       Serial.print(receivedChar);
       Serial.println();
-      moveToLeft(receivedChar);
+      if(receivedChar == 32){
+        Serial.print("- Espacio");
+        Serial.println();
+        addSpace();
+      }else{
+       addLetter(receivedChar);
+       Serial.print("- No espacio");
+        Serial.println();
+      }
       updateMatrix();
     }
   }
